@@ -2,10 +2,7 @@ name: Build Kernel LineageOS 23.0
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - lineage-23.0
-
+  
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -28,24 +25,24 @@ jobs:
             python3 python-is-python3 \
             pahole zstd
 
-      - name: Setup ZyCromerZ Clang 23.0.0
+      - name: Setup ZyCromerZ Clang toolchain
         run: |
           mkdir -p $HOME/toolchains
           cd $HOME/toolchains
 
-          curl -L -o clang.tar.gz \
+          curl -L -o zyc-clang.tar.gz \
           https://github.com/ZyCromerZ/Clang/releases/download/23.0.0git-20260130-release/Clang-23.0.0git-20260130.tar.gz
 
-          tar -xf clang.tar.gz
-          rm clang.tar.gz
+          tar -xf zyc-clang.tar.gz
+          mv Clang-* clang
 
-          echo "Clang contents:"
-          ls Clang-23.0.0git-20260130/bin
+          echo "ZyCromerZ Clang installed:"
+          ls clang/bin | grep -E "clang$|ld.lld"
 
       - name: Export build environment
         run: |
-          echo "CLANG_PATH=$HOME/toolchains/Clang-23.0.0git-20260130/bin" >> $GITHUB_ENV
-          echo "PATH=$HOME/toolchains/Clang-23.0.0git-20260130/bin:$PATH" >> $GITHUB_ENV
+          echo "CLANG_PATH=$HOME/toolchains/clang/bin" >> $GITHUB_ENV
+          echo "PATH=$HOME/toolchains/clang/bin:$PATH" >> $GITHUB_ENV
           echo "ARCH=arm64" >> $GITHUB_ENV
           echo "KBUILD_BUILD_USER=@ravindu644" >> $GITHUB_ENV
           echo "LLVM=1" >> $GITHUB_ENV
