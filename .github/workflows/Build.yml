@@ -30,78 +30,19 @@ jobs:
 
       - name: Setup ZyCromerZ Clang toolchain
         run: |
-          mkdir -p $HOME/toolchains
+          mkdir -p $HOME/toolchains/clang
           cd $HOME/toolchains
 
-          # Download ZyCromerZ Clang
-          echo "Downloading ZyCromerZ Clang..."
-          wget https://github.com/ZyCromerZ/Clang/releases/download/23.0.0git-20260130-release/Clang-23.0.0git-20260130.tar.gz
-
-          # Extract Clang - coba tanpa strip components dulu
-          echo "Extracting Clang..."
-          mkdir clang
+          wget -q https://github.com/ZyCromerZ/Clang/releases/download/23.0.0git-20260130-release/Clang-23.0.0git-20260130.tar.gz
           tar -xf Clang-23.0.0git-20260130.tar.gz -C clang
-          
-          # Debug: lihat struktur folder
-          echo "=== Folder structure ==="
-          find clang -type f -name "*clang*" | head -20
-          echo "=== Bin directory ==="
-          ls -la clang/ || true
-          ls -la clang/*/ 2>/dev/null || true
-          
-          # Cari binary clang
-          CLANG_BIN_PATH=$(find clang -name "clang" -type f | head -1)
-          if [ -n "$CLANG_BIN_PATH" ]; then
-            echo "Found clang at: $CLANG_BIN_PATH"
-            CLANG_DIR=$(dirname $(dirname "$CLANG_BIN_PATH"))
-            echo "Clang directory: $CLANG_DIR"
-            
-            # Jika perlu pindahkan ke struktur yang benar
-            if [ "$CLANG_DIR" != "$HOME/toolchains/clang" ]; then
-              echo "Moving files to correct structure..."
-              mv $CLANG_DIR/* $HOME/toolchains/clang/ 2>/dev/null || true
-            fi
-          fi
-          
-          # Verifikasi akhir
-          echo "=== Final verification ==="
-          if [ -f "$HOME/toolchains/clang/bin/clang" ]; then
-            echo "✓ Clang binary found"
-            ls "$HOME/toolchains/clang/bin/" | grep -E "clang$|ld.lld|clang++" | head -10
-          else
-            echo "✗ Clang binary NOT found"
-            echo "Trying alternative structure..."
-            # Coba struktur alternatif
-            find clang -type d -name "bin" | while read bin_dir; do
-              echo "Checking $bin_dir"
-              ls "$bin_dir/" 2>/dev/null || true
-            done
-          fi
+
+          echo "LLVM installed:"
+          ls clang/bin | grep -E "clang$|ld.lld|clang++"
 
       - name: Export build environment
         run: |
-          # Cari path clang yang benar
-          CLANG_BIN=$(find $HOME/toolchains -name "clang" -type f | head -1)
-          if [ -z "$CLANG_BIN" ]; then
-            echo "ERROR: Clang not found!"
-            exit 1
-          fi
-          
-          CLANG_DIR=$(dirname "$CLANG_BIN")
-          TOOLCHAIN_DIR=$(dirname "$CLANG_DIR")
-          
-          echo "CLANG_PATH=$CLANG_DIR" >> $GITHUB_ENV
-          echo "CC=$CLANG_DIR/clang" >> $GITHUB_ENV
-          echo "CXX=$CLANG_DIR/clang++" >> $GITHUB_ENV
-          
-          # Cari tool lainnya
-          if [ -f "$CLANG_DIR/ld.lld" ]; then
-            echo "LD=$CLANG_DIR/ld.lld" >> $GITHUB_ENV
-          elif [ -f "$TOOLCHAIN_DIR/bin/ld.lld" ]; then
-            echo "LD=$TOOLCHAIN_DIR/bin/ld.lld" >> $GITHUB_ENV
-          fi
-          
-          echo "PATH=$CLANG_DIR:$PATH" >> $GITHUB_ENV
+          echo "CLANG_PATH=$HOME/toolchains/clang/bin" >> $GITHUB_ENV
+          echo "PATH=$HOME/toolchains/clang/bin:$PATH" >> $GITHUB_ENV
           echo "ARCH=arm64" >> $GITHUB_ENV
           echo "KBUILD_BUILD_USER=@ravindu644" >> $GITHUB_ENV
           echo "LLVM=1" >> $GITHUB_ENV
@@ -109,54 +50,18 @@ jobs:
 
       - name: Verify toolchain
         run: |
-          echo "=== Toolchain Verification ==="
-          echo "CC: $CC"
-          echo "CXX: $CXX"
-          echo "LD: $LD"
-          echo "PATH: $PATH"
-          
-          which clang || echo "clang not in PATH"
-          find $HOME/toolchains -name "clang" -type f | head -5
-          
-          if [ -f "$CC" ]; then
-            echo "✓ Clang found at: $CC"
-            $CC --version
-          else
-            echo "✗ Clang not found!"
-          fi
-          
-          if [ -f "$LD" ]; then
-            echo "✓ ld.lld found at: $LD"
-          else
-            echo "Looking for ld.lld..."
-            find $HOME/toolchains -name "ld.lld" -type f | head -5
-          fi
+          which clang
+          which ld.lld
+          clang --version
+          ld.lld --version
 
       - name: Build kernel (lineage-23.0)
-        env:
-          MAKE_TERMOUT: 1
         run: |
           make O=out clean
           make O=out gki_defconfig
-          
-          # Build dengan CC dan LD yang sudah ditemukan
-          make -j$(nproc) \
-            O=out \
-            ARCH=arm64 \
-            CC="$CC" \
-            LD="$LD" \
-            LLVM=1 \
-            LLVM_IAS=1
+          make -j$(nproc) O=out
 
       - name: Upload kernel artifact
-        uses: actions/upload-artifact@v4
-        if: success()
-        with:
-          name: kernel-lineage-23.0
-          path: |
-            out/arch/arm64/boot/Image
-            out/arch/arm64/boot/Image.gz
-            out/arch/arm64/boot/dtbo.img      - name: Upload kernel artifact
         uses: actions/upload-artifact@v4
         with:
           name: kernel-lineage-23.0
