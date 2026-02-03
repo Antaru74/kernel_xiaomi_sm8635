@@ -35,29 +35,11 @@ jobs:
           wget -q https://github.com/ZyCromerZ/Clang/releases/download/23.0.0git-20260130-release/Clang-23.0.0git-20260130.tar.gz
           tar -xf Clang-23.0.0git-20260130.tar.gz
 
-      - name: Locate clang bin directory
-        id: clang
+      - name: Setup LLVM environment (CORRECT WAY)
         run: |
-          CLANG_BIN=$(find $HOME/toolchains -type f -name clang | head -n1 | xargs dirname)
-          echo "CLANG_BIN=$CLANG_BIN"
-          echo "CLANG_BIN=$CLANG_BIN" >> $GITHUB_ENV
-
-      - name: Ensure ld.lld exists
-        run: |
-          if [ ! -f "$CLANG_BIN/ld.lld" ]; then
-            if [ -f "$CLANG_BIN/lld" ]; then
-              ln -s "$CLANG_BIN/lld" "$CLANG_BIN/ld.lld"
-            else
-              echo "ERROR: lld not found in toolchain"
-              exit 1
-            fi
-          fi
-
-      - name: Setup LLVM environment
-        run: |
-          echo "PATH=$CLANG_BIN:$PATH" >> $GITHUB_ENV
           echo "LLVM=1" >> $GITHUB_ENV
           echo "LLVM_IAS=1" >> $GITHUB_ENV
+          echo "LLVM_PATH=$HOME/toolchains/Clang-23.0.0git-20260130" >> $GITHUB_ENV
           echo "ARCH=arm64" >> $GITHUB_ENV
           echo "SUBARCH=arm64" >> $GITHUB_ENV
 
@@ -66,13 +48,15 @@ jobs:
           make O=out \
             LLVM=1 \
             LLVM_IAS=1 \
+            LLVM_PATH=$HOME/toolchains/Clang-23.0.0git-20260130 \
             gki_defconfig
 
       - name: Build kernel
         run: |
           make -j$(nproc) O=out \
             LLVM=1 \
-            LLVM_IAS=1
+            LLVM_IAS=1 \
+            LLVM_PATH=$HOME/toolchains/Clang-23.0.0git-20260130
 
       - name: Upload kernel artifacts
         uses: actions/upload-artifact@v4
