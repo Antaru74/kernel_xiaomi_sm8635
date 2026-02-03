@@ -35,16 +35,27 @@ jobs:
           wget -q https://github.com/ZyCromerZ/Clang/releases/download/23.0.0git-20260130-release/Clang-23.0.0git-20260130.tar.gz
           tar -xf Clang-23.0.0git-20260130.tar.gz
 
-      - name: Fix ld.lld (IMPORTANT)
+      - name: Locate clang bin directory
+        id: clang
         run: |
-          CLANG_BIN="$HOME/toolchains/Clang-23.0.0git-20260130/bin"
+          CLANG_BIN=$(find $HOME/toolchains -type f -name clang | head -n1 | xargs dirname)
+          echo "CLANG_BIN=$CLANG_BIN"
+          echo "CLANG_BIN=$CLANG_BIN" >> $GITHUB_ENV
+
+      - name: Ensure ld.lld exists
+        run: |
           if [ ! -f "$CLANG_BIN/ld.lld" ]; then
-            ln -s "$CLANG_BIN/lld" "$CLANG_BIN/ld.lld"
+            if [ -f "$CLANG_BIN/lld" ]; then
+              ln -s "$CLANG_BIN/lld" "$CLANG_BIN/ld.lld"
+            else
+              echo "ERROR: lld not found in toolchain"
+              exit 1
+            fi
           fi
 
       - name: Setup LLVM environment
         run: |
-          echo "PATH=$HOME/toolchains/Clang-23.0.0git-20260130/bin:$PATH" >> $GITHUB_ENV
+          echo "PATH=$CLANG_BIN:$PATH" >> $GITHUB_ENV
           echo "LLVM=1" >> $GITHUB_ENV
           echo "LLVM_IAS=1" >> $GITHUB_ENV
           echo "ARCH=arm64" >> $GITHUB_ENV
