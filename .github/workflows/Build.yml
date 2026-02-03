@@ -28,24 +28,24 @@ jobs:
             python3 python-is-python3 \
             pahole zstd
 
-      - name: Setup LLVM toolchain (Android / LineageOS)
+      - name: Setup ZyCromerZ Clang 23.0.0
         run: |
           mkdir -p $HOME/toolchains
           cd $HOME/toolchains
 
           curl -L -o clang.tar.gz \
-          https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r547379.tar.gz
+          https://github.com/ZyCromerZ/Clang/releases/download/23.0.0git-20260130-release/Clang-23.0.0git-20260130.tar.gz
 
-          mkdir clang
-          tar -xf clang.tar.gz -C clang
+          tar -xf clang.tar.gz
+          rm clang.tar.gz
 
-          echo "LLVM installed:"
-          ls clang/bin | grep -E "clang$|ld.lld"
+          echo "Clang contents:"
+          ls Clang-23.0.0git-20260130/bin
 
       - name: Export build environment
         run: |
-          echo "CLANG_PATH=$HOME/toolchains/clang/bin" >> $GITHUB_ENV
-          echo "PATH=$HOME/toolchains/clang/bin:$PATH" >> $GITHUB_ENV
+          echo "CLANG_PATH=$HOME/toolchains/Clang-23.0.0git-20260130/bin" >> $GITHUB_ENV
+          echo "PATH=$HOME/toolchains/Clang-23.0.0git-20260130/bin:$PATH" >> $GITHUB_ENV
           echo "ARCH=arm64" >> $GITHUB_ENV
           echo "KBUILD_BUILD_USER=@ravindu644" >> $GITHUB_ENV
           echo "LLVM=1" >> $GITHUB_ENV
