@@ -14,7 +14,7 @@ on:
       KERNEL_TREE_BRANCH:
         description: 'Kernel Tree Branch'
         required: true
-        default: 'stable-r1'
+        default: 'lineage-23.0'
       CODENAME:
         description: 'Phone Codename'
         default: 'peridot'
