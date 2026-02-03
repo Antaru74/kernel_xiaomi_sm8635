@@ -1,4 +1,4 @@
-name: Build Android Kernel 6.1 (GKI)
+name: Build Android Kernel 6.1 (lineage-23.0)
 
 on:
   workflow_dispatch:
@@ -8,12 +8,13 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - name: Checkout kernel source
+      - name: Checkout kernel source (lineage-23.0)
         uses: actions/checkout@v4
         with:
+          ref: lineage-23.0
           fetch-depth: 1
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
           sudo apt update
           sudo apt install -y \
@@ -24,8 +25,8 @@ jobs:
             dwarves \
             python3 \
             wget \
-            xz-utils \
-            git
+            git \
+            xz-utils
 
       - name: Download ZyC Clang 23
         run: |
@@ -34,9 +35,8 @@ jobs:
           wget -q https://github.com/ZyCromerZ/Clang/releases/download/23.0.0git-20260130-release/Clang-23.0.0git-20260130.tar.gz
           tar -xf Clang-23.0.0git-20260130.tar.gz
 
-      - name: Setup environment
+      - name: Setup LLVM environment
         run: |
-          echo "CLANG_PATH=$HOME/toolchains/Clang-23.0.0git-20260130/bin" >> $GITHUB_ENV
           echo "PATH=$HOME/toolchains/Clang-23.0.0git-20260130/bin:$PATH" >> $GITHUB_ENV
           echo "LLVM=1" >> $GITHUB_ENV
           echo "LLVM_IAS=1" >> $GITHUB_ENV
@@ -45,23 +45,21 @@ jobs:
 
       - name: Kernel defconfig (gki_defconfig)
         run: |
-          make O=out gki_defconfig
+          make O=out \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            gki_defconfig
 
       - name: Build kernel
         run: |
           make -j$(nproc) O=out \
-            CC=clang \
-            LD=ld.lld \
-            AR=llvm-ar \
-            NM=llvm-nm \
-            OBJCOPY=llvm-objcopy \
-            OBJDUMP=llvm-objdump \
-            STRIP=llvm-strip
+            LLVM=1 \
+            LLVM_IAS=1
 
-      - name: Upload kernel Image
+      - name: Upload kernel artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-image
+          name: kernel-lineage-23.0
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/Image.gz
